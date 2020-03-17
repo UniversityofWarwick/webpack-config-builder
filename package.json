@@ -1,8 +1,8 @@
 {
-  "name": "webpack-config-builder",
-  "version": "1.0.0",
+  "name": "@universityofwarwick/webpack-config-builder",
+  "version": "1.0.1",
   "description": "Webpack configuration builder",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "dependencies": {
     "@babel/core": "7.2.2",
     "@babel/plugin-syntax-dynamic-import": "7.2.0",
@@ -37,10 +37,13 @@
     "webpack-stream": "5.2.1"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "babel src --out-dir dist",
+    "prepublishOnly": "npm run build"
   },
   "repository": "github:UniversityOfWarwick/webpack-config-builder",
-  "type": "module",
   "author": "University of Warwick",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.8.4"
+  }
 }
