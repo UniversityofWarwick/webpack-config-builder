@@ -8,7 +8,6 @@ import merge from 'webpack-merge';
 import webpack, { DefinePlugin, ProgressPlugin, ProvidePlugin } from 'webpack';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
 import WebpackNotifierPlugin from 'webpack-notifier';
-import ExtraneousFileCleanupPlugin from 'webpack-extraneous-file-cleanup-plugin';
 
 // Internal modules
 import * as tooling from './webpack.tooling';
@@ -163,9 +162,6 @@ export default class Builder {
           // Fix Webpack global CSP violation https://github.com/webpack/webpack/issues/6461
           new ProvidePlugin({
             global: require.resolve('./global.js'),
-          }),
-          new ExtraneousFileCleanupPlugin({ // CSS entry point = useless JS files & source maps created
-            extensions: ['.js']
           }),
         ];
 

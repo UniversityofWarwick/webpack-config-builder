@@ -1,6 +1,6 @@
 {
   "name": "@universityofwarwick/webpack-config-builder",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Webpack configuration builder",
   "main": "dist/index.js",
   "dependencies": {
@@ -31,7 +31,6 @@
     "webpack": "4.28.3",
     "webpack-bundle-analyzer": "^3.6.0",
     "webpack-cli": "^3.1.2",
-    "webpack-extraneous-file-cleanup-plugin": "^2.0.0",
     "webpack-merge": "4.1.5",
     "webpack-notifier": "1.7.0",
     "webpack-stream": "5.2.1"
