@@ -16,9 +16,16 @@ import PlayFingerprintsPlugin from './PlayFingerprintsPlugin';
 /**
 * @typedef {Object} BrowserLevel
 * @property {string} id - Identifier used for cache names etc.
-* @property {string} prefix - appended to bundle names - can be empty but must be unique.
+* @property {string} suffix - appended to bundle names - can be empty but must be unique.
 * @property {any} babelTargets - String or object to pass to babel-env targets property.
 */
+
+/**
+ * @typedef {Object} MomentTimezoneOptions
+ * @property {number} startYear
+ * @property {number} endYear
+ * @property {string|string[]|RegExp|RegExp[]} [matchZones]
+ */
 
 /**
 * @type {Object.<string, BrowserLevel>}
@@ -27,7 +34,7 @@ const BROWSER_LEVELS = {
   // Default base level, 
   es5: {
     id: 'es5',
-    prefix: '',
+    suffix: '',
     babelTargets: '> 0.25%, not dead, ie 11',
   },
 };
@@ -56,13 +63,38 @@ export default class Builder {
     */
     this.copyModules = [];
     
-    /** @type {boolean} */
+    /** 
+     * @type {boolean}
+     * @private
+     */
     this.useExternalJquery = true;
 
-    /** @type {Object.<string, string>} */
+    /** 
+     * @type {Object.<string, string>}
+     * @private
+     */
     this.javascriptEntries = {};
 
+    /** @private */
     this.play = false;
+
+    /** @private */
+    this.assetsRoot = './src/main/assets';
+
+    /**
+     * Set either manually, or at build time if left undefined 
+     * @private
+     */
+    this.styleEntries = undefined;
+
+    /**  
+     * @type {MomentTimezoneOptions} 
+     * @private
+     */
+    this._momentTimezoneOptions = {
+      startYear: 2020,
+      endYear: (new Date()).getFullYear() + 3
+    };
   }
   
   /**
@@ -77,7 +109,23 @@ export default class Builder {
     }
     
     this.play = true;
+    this.assetsRoot = './app/assets';
     this.outputPath = path.join(process.cwd(), 'target/assets');
+    this.publicPath = '/assets/';
+    return this;
+  }
+
+  springApp() {
+    // check cwd before you wreck cwd
+    try {
+      fs.statSync(path.join(process.cwd(), 'src/main/assets'));
+    } catch (e) {
+      throw new Error('src/main/assets not found, are you in the right directory?');
+    }
+    
+    this.play = true;
+    this.assetsRoot = './src/main/assets';
+    this.outputPath = path.join(process.cwd(), 'build/resources/main/static/assets');
     this.publicPath = '/assets/';
     return this;
   }
@@ -99,6 +147,10 @@ export default class Builder {
   * @param {BrowserLevel} level 
   */
   addBrowserLevel(level) {
+    if (level.prefix) {
+      // it was always a suffix but was misnamed
+      throw new Error('prefix has been renamed to suffix, update your browser level definition');
+    }
     this.browserLevels.push(level);
     return this;
   }
@@ -110,146 +162,204 @@ export default class Builder {
     this.javascriptEntries = entries;
     return this;
   }
+
+  /**
+   * @param {Object.<string, string>} entries 
+   */
+  cssEntries(entries) {
+    this.styleEntries = entries;
+    return this;
+  }
   
   /**
   * Choose whether to use an externally provided global jQuery (replacing any imports),
   * or whether to import our own jquery module (which will get exposed to any module that
-    * expects it as a global).
-    * 
-    * Defaults to true, since we typically 
-    * 
-    * @param {boolean} use
-    */
-    externalJquery(use) {
-      this.useExternalJquery = use;
-      return this;
-    }
-    
-    /**
-    * Copy the contents of an NPM module to a destination path
-    * 
-    * @param {string} module 
-    * @param {string} sourcePath 
-    * @param {string} destPath 
-    */
-    copyModule(module, sourcePath, destPath) {
-      this.copyModules.push({
-        from: `node_modules/${module}/${sourcePath}`,
-        to: path.join(this.outputPath, destPath)
-      });
-      return this;
-    }
-    
-    
-    /**
-    * Builds and returns an array of Webpack configurations that can be exported.
-    * @returns {Object[]}
-    */
-    build() {
-      /**
-       * 
-       * @param {Object} options
-       * @param {boolean} options.first - If true, will run certain once-only tasks to avoid doing the same stuff multiple times needlessly.
-       * @param {BrowserLevel} options.buildOptions
-       * @returns {webpack.Configuration}
-       */
-      const commonConfig = ({ first, buildOptions: { id, prefix, babelTargets } }) => {
-        const plugins = [
-          new ProgressPlugin(),
-          new DefinePlugin({
-            BUILD_LEVEL: JSON.stringify(id)
-          }),
-          // Fix Webpack global CSP violation https://github.com/webpack/webpack/issues/6461
-          new ProvidePlugin({
-            global: require.resolve('./global.js'),
-          }),
-        ];
-
-        try {
-          // fails if project isn't using moment
-          const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
-          plugins.push(new MomentLocalesPlugin({ localesToKeep: ['en-gb'] }));
-        } catch {}
-
-        if (this.play) {
-          plugins.push(new PlayFingerprintsPlugin());
-        }
-
-        return merge([
-          {
-            output: {
-              path: this.outputPath,
-              publicPath: this.publicPath,
-            },
-            node: {
-              // Fix Webpack global CSP violation https://github.com/webpack/webpack/issues/6461
-              global: false,
-            },
-            plugins,
-          },
-          this.useExternalJquery ? {
-            // jQuery is a global, replace imports of jquery with references to it
-            externals: {
-              jquery: 'jQuery'
-            }
-          } : {
-            // Replace references to global jQuery with an import of jquery
-            plugins: [
-              new ProvidePlugin({
-                jQuery: 'jquery',
-                $: 'jquery',
-              })
-            ]
-          },
-          first ? tooling.lintJS() : {},
-          tooling.transpileJS({
-            id,
-            prefix,
-            entry: this.javascriptEntries,
-            babelTargets,
-          }),
-          first && this.copyModules.length ? {
-            plugins: [
-              new CopyWebpackPlugin(this.copyModules),
-            ],
-          } : {},
-          first ? tooling.copyLocalImages({
-            dest: this.outputPath,
-          }) : {},
-          tooling.extractCSS({
-            resolverPaths: [
-              'node_modules',
-            ],
-          }),
-        ])
-      };
-      
-      /** @type {webpack.Configuration} */
-      const productionConfig = merge([
-        {
-          mode: 'production',
-        },
-        tooling.minify(),
-        tooling.generateSourceMaps('source-map'),
-      ]);
-      
-      /** @type {webpack.Configuration} */
-      const developmentConfig = merge([
-        {
-          mode: 'development',
-          plugins: [
-            new WebpackNotifierPlugin(),
-          ],
-        },
-        tooling.generateSourceMaps('cheap-module-source-map'),
-      ]);
-      
-      
-      return ({ production } = {}) => {
-        const config = production ? productionConfig : developmentConfig;
-        return this.browserLevels.map((browserLevel, i) => 
-        merge(commonConfig({ buildOptions: browserLevel, first: i == 0 }), config)
-        );
-      };
-    }
+  * expects it as a global).
+  * 
+  * Defaults to true, since we typically include the ID7 bundle
+  * 
+  * @param {boolean} use
+  */
+  externalJquery(use) {
+    this.useExternalJquery = use;
+    return this;
   }
+  
+  /**
+  * Copy the contents of an NPM module to a destination path
+  * 
+  * @param {string} module 
+  * @param {string} sourcePath 
+  * @param {string} destPath 
+  */
+  copyModule(module, sourcePath, destPath) {
+    this.copyModules.push({
+      from: `node_modules/${module}/${sourcePath}`,
+      to: path.join(this.outputPath, destPath)
+    });
+    return this;
+  }
+
+  /**
+   * Override the default options for moment-timezone-data-webpack-plugin
+   * 
+   * @param {MomentTimezoneOptions} options 
+   */
+  setMomentTimezoneOptions(options) {
+    this._momentTimezoneOptions = options;
+    return this;
+  }
+
+  /**
+   * Limit the years of TZ data to include. Often you might set this to
+   * the inception date of your app, so that it can handle historical data.
+   * 
+   * @param {number} year - Start year for TZ data
+   * @param {*} [extraYears=3] - How many extra years of data to include
+   */
+  momentTimezonesFrom(year, extraYears) {
+    this._momentTimezoneOptions.startYear = year;
+    this._momentTimezoneOptions.endYear = year + (extraYears || 3);
+    return this;
+  }
+
+  /** 
+   * Limits TZ data to London only which is recommended if you don't
+   * actually need to deal with lots of zones in your app.
+   */
+  momentTimezonesLondonOnly() {
+    this._momentTimezoneOptions.matchZones = 'Europe/London';
+    return this;
+  }
+    
+    
+  /**
+  * Builds and returns an array of Webpack configurations that can be exported.
+  * @returns {Object[]}
+  */
+  build() {
+
+    for (const jsKey in this.javascriptEntries) {
+      for (const cssKey in this.styleEntries) {
+        if (jsKey === cssKey) {
+          throw new Error(`Conflicting JS and CSS entrypoints both called ${jsKey} - one would overwrite the other. Rename one.`)
+        }
+      }
+    }
+
+    /**
+     * @param {Object} options
+     * @param {boolean} options.first - If true, will run certain once-only tasks to avoid doing the same stuff multiple times needlessly.
+     * @param {BrowserLevel} options.buildOptions
+     * @returns {webpack.Configuration}
+     */
+    const commonConfig = ({ first, buildOptions: { id, suffix, babelTargets } }) => {
+      const plugins = [
+        new ProgressPlugin(),
+        new DefinePlugin({
+          BUILD_LEVEL: JSON.stringify(id)
+        }),
+        // Fix Webpack global CSP violation https://github.com/webpack/webpack/issues/6461
+        new ProvidePlugin({
+          global: require.resolve('./global.js'),
+        }),
+      ];
+
+      try {
+        // fails if project isn't using moment
+        const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
+        const MomentTimezoneDataPlugin = require('moment-timezone-data-webpack-plugin');
+        const thisYear = (new Date()).getFullYear();
+        plugins.push(new MomentLocalesPlugin({ localesToKeep: ['en-gb'] }));
+        plugins.push(new MomentTimezoneDataPlugin(this._momentTimezoneOptions));
+      } catch {}
+
+      if (this.play) {
+        plugins.push(new PlayFingerprintsPlugin());
+      }
+
+      if (typeof this.styleEntries === 'undefined') {
+        this.styleEntries = this.styleEntries = {
+          style: `${this.assetsRoot}/css/main.less`,
+        };
+      }
+
+      return merge([
+        {
+          output: {
+            path: this.outputPath,
+            publicPath: this.publicPath,
+          },
+          node: {
+            // Fix Webpack global CSP violation https://github.com/webpack/webpack/issues/6461
+            global: false,
+          },
+          plugins,
+        },
+        this.useExternalJquery ? {
+          // jQuery is a global, replace imports of jquery with references to it
+          externals: {
+            jquery: 'jQuery'
+          }
+        } : {
+          // Replace references to global jQuery with an import of jquery
+          plugins: [
+            new ProvidePlugin({
+              jQuery: 'jquery',
+              $: 'jquery',
+            })
+          ]
+        },
+        first ? tooling.lintJS() : {},
+        tooling.transpileJS({
+          id,
+          suffix,
+          entry: this.javascriptEntries,
+          babelTargets,
+        }),
+        first && this.copyModules.length ? {
+          plugins: [
+            new CopyWebpackPlugin(this.copyModules),
+          ],
+        } : {},
+        first ? tooling.copyLocalImages({
+          dest: this.outputPath,
+        }) : {},
+        tooling.extractCSS({
+          entry: this.styleEntries,
+          resolverPaths: [
+            'node_modules',
+          ],
+        }),
+      ])
+    };
+    
+    /** @type {webpack.Configuration} */
+    const productionConfig = merge([
+      {
+        mode: 'production',
+      },
+      tooling.minify(),
+      tooling.generateSourceMaps('source-map'),
+    ]);
+    
+    /** @type {webpack.Configuration} */
+    const developmentConfig = merge([
+      {
+        mode: 'development',
+        plugins: [
+          new WebpackNotifierPlugin(),
+        ],
+      },
+      tooling.generateSourceMaps('cheap-module-source-map'),
+    ]);
+    
+    
+    return ({ production } = {}) => {
+      const config = production ? productionConfig : developmentConfig;
+      return this.browserLevels.map((browserLevel, i) => 
+      merge(commonConfig({ buildOptions: browserLevel, first: i == 0 }), config)
+      );
+    };
+  }
+}
