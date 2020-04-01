@@ -27,11 +27,11 @@ export const lintJS = () => ({
   },
 });
 
-export const transpileJS = ({ id, prefix = '', entry, include, babelTargets } = {}) => ({
+export const transpileJS = ({ id, suffix = '', entry, include, babelTargets }) => ({
   entry,
   output: {
-    chunkFilename: `[name]${prefix}.js`,
-    filename: `[name]${prefix}.js`,
+    chunkFilename: `[chunkhash]-[name]${suffix}.js`,
+    filename: `[name]${suffix}.js`,
   },
   module: {
     rules: [
@@ -64,10 +64,8 @@ export const copyLocalImages = ({ dest } = {}) => ({
   ],
 });
 
-export const extractCSS = ({ resolverPaths } = {}) => ({
-  entry: {
-    style: './app/assets/css/main.less',
-  },
+export const extractCSS = ({ entry, resolverPaths } = {}) => ({
+  entry,
   module: {
     rules: [
       {

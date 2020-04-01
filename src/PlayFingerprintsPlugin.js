@@ -2,6 +2,8 @@
 /* eslint-disable no-restricted-syntax */
 import { createHash } from 'crypto';
 
+import webpack from 'webpack';
+
 /**
  * Webpack plugin that generates some extra files for Play! Framework
  * to use to generate versioned assets.
@@ -17,20 +19,25 @@ export default class PlayFingerprintsPlugin {
     this.options = options || {};
   }
 
+  /**
+   * @param {webpack.Compiler} compiler 
+   */
   apply(compiler) {
     compiler.hooks.emit.tapAsync('PlayFingerprintsPlugin', (compilation, done) => {
       const { assets } = compilation;
+      const logger = compilation.getLogger('PlayFingerprintsPlugin');
       const versionedFilenames = {};
 
       for (const filename in assets) {
         if (Object.prototype.hasOwnProperty.call(assets, filename)) {
-          const dynamicChunk = filename.match(/^([a-z0-9]+)-([0-9]+.js(\.map)?)$/)
+          const dynamicChunk = filename.match(/^([a-z0-9]{20})-(.+.js(\.map)?)$/);
           if (dynamicChunk) {
             // This is a dynamic chunk that uses [chunkhash]
             // in its filename already - so reverse engineer the .md5 file
             // to allow the Gulp script to find the fingerprinted version.
             const hash = dynamicChunk[1];
             const name = dynamicChunk[2];
+            logger.info('Processing dynamic chunk with hash and name', hash, name);
             assets[`${name}.md5`] = {
               source: () => hash,
               size: () => hash.length,
@@ -57,16 +64,6 @@ export default class PlayFingerprintsPlugin {
           }
         }
       }
-
-      // for (const chunkId in compilation.chunks) {
-      //   if (compilation.chunks.hasOwnProperty(chunkId)) {
-      //     const chunk = compilation.chunks[chunkId];
-      //     chunk.files = chunk.files.map( file => {
-      //       console.log(`Replacing ${file} with ${versionedFilenames[file]}`);
-      //       return versionedFilenames[file];
-      //     });
-      //   }
-      // }
 
       done();
     });
