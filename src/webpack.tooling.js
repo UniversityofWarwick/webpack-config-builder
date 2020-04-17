@@ -119,12 +119,6 @@ export const minify = () => ({
     minimizer: [
       new TerserPlugin({
         sourceMap: true,
-        cache: true,
-        terserOptions: {
-          compress: {
-            drop_console: true,
-          },
-        },
       }),
       new OptimizeCssAssetsPlugin({
         cssProcessor: CssNano,
