@@ -123,7 +123,6 @@ export default class Builder {
       throw new Error('src/main/assets not found, are you in the right directory?');
     }
     
-    this.play = true;
     this.assetsRoot = './src/main/assets';
     this.outputPath = path.join(process.cwd(), 'build/resources/main/static/assets');
     this.publicPath = '/assets/';
