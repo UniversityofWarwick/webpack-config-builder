@@ -12,6 +12,7 @@ import WebpackNotifierPlugin from 'webpack-notifier';
 // Internal modules
 import * as tooling from './webpack.tooling';
 import PlayFingerprintsPlugin from './PlayFingerprintsPlugin';
+import StaticHashesPlugin from './StaticHashesPlugin';
 
 /**
 * @typedef {Object} BrowserLevel
@@ -29,9 +30,9 @@ import PlayFingerprintsPlugin from './PlayFingerprintsPlugin';
 
 /**
 * @type {Object.<string, BrowserLevel>}
-*/ 
+*/
 const BROWSER_LEVELS = {
-  // Default base level, 
+  // Default base level,
   es5: {
     id: 'es5',
     suffix: '',
@@ -39,15 +40,21 @@ const BROWSER_LEVELS = {
   },
 };
 
+const DEFAULT_CONFIGURATION = {
+  assetsRoot: './src/main/assets',
+  outputPath: undefined,
+  publicPath: '/assets/',
+};
+
 /**
  * A builder pattern for Webpack config. Each call mutates the builder to change the options.
- * 
+ *
  * Because we don't actually put the config together until you call build(), it shouldn't matter
  * what order you call them in.
- * 
+ *
  * If you have two sets of things to build with nothing in common then it should be fine to concat
  * their results eg:
- * 
+ *
  *     const config = [ ...builder1.build(), ... builder2.build() ];
  */
 export default class Builder {
@@ -57,19 +64,20 @@ export default class Builder {
     * @private
     */
     this.browserLevels = [BROWSER_LEVELS.es5];
+
     /**
     * @type {{from: string, to: string}[]}
     * @private
     */
     this.copyModules = [];
-    
-    /** 
+
+    /**
      * @type {boolean}
      * @private
      */
     this.useExternalJquery = true;
 
-    /** 
+    /**
      * @type {Object.<string, string>}
      * @private
      */
@@ -82,13 +90,19 @@ export default class Builder {
     this.assetsRoot = './src/main/assets';
 
     /**
-     * Set either manually, or at build time if left undefined 
+     * Set either manually, or at build time if left undefined
      * @private
      */
     this.styleEntries = undefined;
 
-    /**  
-     * @type {MomentTimezoneOptions} 
+    /**
+     * @type {Object.<string, string>}
+     * @private
+     */
+    this.copyAssetPaths = {};
+
+    /**
+     * @type {MomentTimezoneOptions}
      * @private
      */
     this._momentTimezoneOptions = {
@@ -96,43 +110,58 @@ export default class Builder {
       endYear: (new Date()).getFullYear() + 3
     };
   }
-  
+
   /**
-  * Specify that this project uses our standard Play layout, 
-  */
-  playApp() {
+   * @param {String} assetsRoot
+   * @param {String} outputPath
+   * @param {String} publicPath
+   */
+  configure({ assetsRoot, outputPath, publicPath } = DEFAULT_CONFIGURATION) {
     // check cwd before you wreck cwd
     try {
-      fs.statSync(path.join(process.cwd(), 'app/assets'));
+      fs.statSync(path.join(process.cwd(), assetsRoot));
     } catch (e) {
-      throw new Error('app/assets not found, are you in the right directory?');
+      throw new Error(`${assetsRoot} not found, are you in the right directory?`);
     }
-    
-    this.play = true;
-    this.assetsRoot = './app/assets';
-    this.outputPath = path.join(process.cwd(), 'target/assets');
-    this.publicPath = '/assets/';
+
+    this.assetsRoot = assetsRoot;
+    this.outputPath = outputPath;
+    this.publicPath = publicPath;
     return this;
   }
 
+  /**
+  * Specify that this project uses our standard Play layout,
+  */
+  playApp() {
+    this.play = true;
+
+    return this.configure({
+      assetsRoot: './app/assets',
+      outputPath: path.join(process.cwd(), 'target/assets'),
+      publicPath: '/assets/',
+    });
+  }
+
+  /**
+   * @deprecated Use {@link springBootApp}, default values may change in future
+   */
   springApp() {
-    // check cwd before you wreck cwd
-    try {
-      fs.statSync(path.join(process.cwd(), 'src/main/assets'));
-    } catch (e) {
-      throw new Error('src/main/assets not found, are you in the right directory?');
-    }
-    
-    this.assetsRoot = './src/main/assets';
-    this.outputPath = path.join(process.cwd(), 'build/resources/main/static/assets');
-    this.publicPath = '/assets/';
-    return this;
+    return this.springBootApp();
+  }
+
+  springBootApp() {
+    return this.configure({
+      assetsRoot: './src/main/assets',
+      outputPath: path.join(process.cwd(), 'build/resources/main/static/assets'),
+      publicPath: '/assets/',
+    });
   }
 
   /**
    * By default there is one browser target generating ES5 code, which you can add to with
    * addBrowserLevel.
-   * 
+   *
    * If the default browser targets are not appropriate for you, you can clear the collection
    * and just add the ones you want. This might be the case when you're generating a bundle that's
    * just for modern browsers.
@@ -141,9 +170,9 @@ export default class Builder {
     this.browserLevels = [];
     return this;
   }
-  
+
   /**
-  * @param {BrowserLevel} level 
+  * @param {BrowserLevel} level
   */
   addBrowserLevel(level) {
     if (level.prefix) {
@@ -155,7 +184,7 @@ export default class Builder {
   }
 
   /**
-   * @param {Object.<string, string>} entries 
+   * @param {Object.<string, string>} entries
    */
   jsEntries(entries) {
     this.javascriptEntries = entries;
@@ -163,33 +192,41 @@ export default class Builder {
   }
 
   /**
-   * @param {Object.<string, string>} entries 
+   * @param {Object.<string, string>} entries
    */
   cssEntries(entries) {
     this.styleEntries = entries;
     return this;
   }
-  
+
+  /**
+   * @param {Object.<string, string>} paths
+   */
+  copyAssets(paths) {
+    this.copyAssetPaths = paths;
+    return this;
+  }
+
   /**
   * Choose whether to use an externally provided global jQuery (replacing any imports),
   * or whether to import our own jquery module (which will get exposed to any module that
   * expects it as a global).
-  * 
+  *
   * Defaults to true, since we typically include the ID7 bundle
-  * 
+  *
   * @param {boolean} use
   */
   externalJquery(use) {
     this.useExternalJquery = use;
     return this;
   }
-  
+
   /**
   * Copy the contents of an NPM module to a destination path
-  * 
-  * @param {string} module 
-  * @param {string} sourcePath 
-  * @param {string} destPath 
+  *
+  * @param {string} module
+  * @param {string} sourcePath
+  * @param {string} destPath
   */
   copyModule(module, sourcePath, destPath) {
     this.copyModules.push({
@@ -201,8 +238,8 @@ export default class Builder {
 
   /**
    * Override the default options for moment-timezone-data-webpack-plugin
-   * 
-   * @param {MomentTimezoneOptions} options 
+   *
+   * @param {MomentTimezoneOptions} options
    */
   setMomentTimezoneOptions(options) {
     this._momentTimezoneOptions = options;
@@ -212,7 +249,7 @@ export default class Builder {
   /**
    * Limit the years of TZ data to include. Often you might set this to
    * the inception date of your app, so that it can handle historical data.
-   * 
+   *
    * @param {number} year - Start year for TZ data
    * @param {*} [extraYears=3] - How many extra years of data to include
    */
@@ -222,7 +259,7 @@ export default class Builder {
     return this;
   }
 
-  /** 
+  /**
    * Limits TZ data to London only which is recommended if you don't
    * actually need to deal with lots of zones in your app.
    */
@@ -230,8 +267,8 @@ export default class Builder {
     this._momentTimezoneOptions.matchZones = 'Europe/London';
     return this;
   }
-    
-    
+
+
   /**
   * Builds and returns an array of Webpack configurations that can be exported.
   * @returns {Object[]}
@@ -272,10 +309,6 @@ export default class Builder {
         plugins.push(new MomentLocalesPlugin({ localesToKeep: ['en-gb'] }));
         plugins.push(new MomentTimezoneDataPlugin(this._momentTimezoneOptions));
       } catch {}
-
-      if (this.play) {
-        plugins.push(new PlayFingerprintsPlugin());
-      }
 
       if (typeof this.styleEntries === 'undefined') {
         this.styleEntries = this.styleEntries = {
@@ -321,18 +354,36 @@ export default class Builder {
             new CopyWebpackPlugin(this.copyModules),
           ],
         } : {},
-        first ? tooling.copyLocalImages({
+        first && this.play ? tooling.copyLocalImages({
           dest: this.outputPath,
         }) : {},
+        first && Object.keys(this.copyAssetPaths).length ? {
+          plugins: [
+            new CopyWebpackPlugin(
+              Object.entries(this.copyAssetPaths).map(([destPath, from]) => {
+                return {
+                  from,
+                  to: path.join(this.outputPath, destPath),
+                };
+              })
+            ),
+          ],
+        } : {},
         tooling.extractCSS({
           entry: this.styleEntries,
           resolverPaths: [
             'node_modules',
           ],
         }),
+        // This is intentionally at the end so that copies get fingerprinted too
+        {
+          plugins: [
+            this.play ? new PlayFingerprintsPlugin() : new StaticHashesPlugin(),
+          ],
+        },
       ])
     };
-    
+
     /** @type {webpack.Configuration} */
     const productionConfig = merge([
       {
@@ -341,7 +392,7 @@ export default class Builder {
       tooling.minify(),
       tooling.generateSourceMaps('source-map'),
     ]);
-    
+
     /** @type {webpack.Configuration} */
     const developmentConfig = merge([
       {
@@ -352,12 +403,12 @@ export default class Builder {
       },
       tooling.generateSourceMaps('cheap-module-source-map'),
     ]);
-    
-    
+
+
     return ({ production } = {}) => {
       const config = production ? productionConfig : developmentConfig;
-      return this.browserLevels.map((browserLevel, i) => 
-      merge(commonConfig({ buildOptions: browserLevel, first: i == 0 }), config)
+      return this.browserLevels.map((browserLevel, i) =>
+        merge(commonConfig({ buildOptions: browserLevel, first: i === 0 }), config)
       );
     };
   }
