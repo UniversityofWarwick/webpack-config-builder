@@ -3,7 +3,7 @@ import Builder from './Builder';
 /**
  * @returns {Builder}
  */
-function create() {
+export function create() {
     return new Builder();
 }
 

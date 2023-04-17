@@ -2,6 +2,13 @@
 
 Reusable builder to tame our Webpack boilerplate.
 
+## Requirements
+
+Some NPM modules need to be directly installed in your project:
+
+* `webpack-cli` to provide the `webpack` command
+* `@babel/register` if you are using Webpack's Babel support (i.e. if your config filename contains `babel`)
+
 ## Example `webpack.config.babel.js`
 
 There are various options - there should be enough JSDoc coming from the module that once you have created a builder instance you will get completion hints about what methods you can call.
@@ -9,7 +16,7 @@ There are various options - there should be enough JSDoc coming from the module 
 ```js
 import * as builder from '@universityofwarwick/webpack-config-builder';
 
-export default builder.playApp()
+export default builder.create().playApp()
   .jsEntries({
       admin: './app/assets/js/admin.js',
       render: './app/assets/js/render.js',

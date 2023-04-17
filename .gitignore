@@ -1,4 +1,6 @@
-/package-lock.json
+package-lock.json
 /dist
+build/
 node_modules/
+.babel-loader-caches/
 .idea
