@@ -28,9 +28,6 @@ import StaticHashesPlugin from './StaticHashesPlugin';
  * @property {string|string[]|RegExp|RegExp[]} [matchZones]
  */
 
-/**
-* @type {Object.<string, BrowserLevel>}
-*/
 const BROWSER_LEVELS = {
   // Default base level,
   es5: {
@@ -351,7 +348,7 @@ export default class Builder {
         }),
         first && this.copyModules.length ? {
           plugins: [
-            new CopyWebpackPlugin(this.copyModules),
+            new CopyWebpackPlugin({ patterns: this.copyModules }),
           ],
         } : {},
         first && this.play ? tooling.copyLocalImages({
@@ -359,14 +356,14 @@ export default class Builder {
         }) : {},
         first && Object.keys(this.copyAssetPaths).length ? {
           plugins: [
-            new CopyWebpackPlugin(
-              Object.entries(this.copyAssetPaths).map(([destPath, from]) => {
+            new CopyWebpackPlugin({
+              patterns: Object.entries(this.copyAssetPaths).map(([destPath, from]) => {
                 return {
                   from,
                   to: path.join(this.outputPath, destPath),
                 };
               })
-            ),
+            }),
           ],
         } : {},
         tooling.extractCSS({

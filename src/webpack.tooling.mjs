@@ -1,15 +1,14 @@
 import CopyWebpackPlugin from 'copy-webpack-plugin';
-import TerserPlugin from 'terser-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import Autoprefixer from 'autoprefixer';
-import CssNano from 'cssnano';
-import OptimizeCssAssetsPlugin from 'optimize-css-assets-webpack-plugin';
-import PostCssSafeParser from 'postcss-safe-parser';
+import CssMinimizerWebpackPlugin from 'css-minimizer-webpack-plugin';
 
 export const autoprefix = () => ({
   loader: 'postcss-loader',
   options: {
-    plugins: () => [Autoprefixer()],
+    postcssOptions: {
+      plugins: () => [Autoprefixer()],
+    },
     sourceMap: true,
   },
 });
@@ -57,10 +56,12 @@ export const transpileJS = ({ id, suffix = '', entry, include, babelTargets }) =
 
 export const copyLocalImages = ({ dest } = {}) => ({
   plugins: [
-    new CopyWebpackPlugin([{
-      from: 'app/assets/images',
-      to: dest,
-    }]),
+    new CopyWebpackPlugin({
+      patterns: [{
+        from: 'app/assets/images',
+        to: dest,
+      }]
+    }),
   ],
 });
 
@@ -97,10 +98,9 @@ export const extractCSS = ({ entry, resolverPaths } = {}) => ({
           {
             loader: 'less-loader',
             options: {
-              paths: resolverPaths,
-              relativeUrls: false,
               sourceMap: true,
             },
+          
           },
         ],
       },
@@ -117,19 +117,8 @@ export const extractCSS = ({ entry, resolverPaths } = {}) => ({
 export const minify = () => ({
   optimization: {
     minimizer: [
-      new TerserPlugin({
-        sourceMap: true,
-      }),
-      new OptimizeCssAssetsPlugin({
-        cssProcessor: CssNano,
-        cssProcessorOptions: {
-          parser: PostCssSafeParser,
-          discardComments: {
-            removeAll: true,
-          },
-        },
-        canPrint: true,
-      }),
+      `...`, // default minimizers
+      new CssMinimizerWebpackPlugin(),
     ],
   },
 });

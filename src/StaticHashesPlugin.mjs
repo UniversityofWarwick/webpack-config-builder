@@ -56,7 +56,7 @@ module.exports = class StaticHashesPlugin {
       const lines = Object.keys(hashes).sort().map((key) => `${key}${delimiter}${hashes[key]}\n`);
       const contents = lines.join('');
 
-      const data = new Buffer(contents);
+      const data = Buffer.from(contents);
 
       assets[dest] = {
         source: () => data,
