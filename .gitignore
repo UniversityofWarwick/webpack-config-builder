@@ -1,5 +1,6 @@
 /dist
 build/
 node_modules/
-.babel-loader-caches/
+.babel-loader-caches
 .idea
+*.tgz
