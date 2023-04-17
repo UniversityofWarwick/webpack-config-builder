@@ -4,15 +4,17 @@ import path from 'path';
 import fs from 'fs';
 
 // External modules
-import merge from 'webpack-merge';
-import webpack, { DefinePlugin, ProgressPlugin, ProvidePlugin } from 'webpack';
+import { merge } from 'webpack-merge';
+import webpack from 'webpack';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
 import WebpackNotifierPlugin from 'webpack-notifier';
 
 // Internal modules
-import * as tooling from './webpack.tooling';
-import PlayFingerprintsPlugin from './PlayFingerprintsPlugin';
-import StaticHashesPlugin from './StaticHashesPlugin';
+import * as tooling from './webpack.tooling.js';
+import PlayFingerprintsPlugin from './PlayFingerprintsPlugin.js';
+import StaticHashesPlugin from './StaticHashesPlugin.js';
+
+const { DefinePlugin, ProgressPlugin, ProvidePlugin } = webpack;
 
 /**
 * @typedef {Object} BrowserLevel
@@ -286,26 +288,24 @@ export default class Builder {
      * @param {BrowserLevel} options.buildOptions
      * @returns {webpack.Configuration}
      */
-    const commonConfig = ({ first, buildOptions: { id, suffix, babelTargets } }) => {
+    const commonConfig = async ({ first, buildOptions: { id, suffix, babelTargets } }) => {
       const plugins = [
         new ProgressPlugin(),
         new DefinePlugin({
           BUILD_LEVEL: JSON.stringify(id)
         }),
-        // Fix Webpack global CSP violation https://github.com/webpack/webpack/issues/6461
-        new ProvidePlugin({
-          global: require.resolve('./global.js'),
-        }),
       ];
 
       try {
         // fails if project isn't using moment
-        const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
-        const MomentTimezoneDataPlugin = require('moment-timezone-data-webpack-plugin');
+        const { default: MomentLocalesPlugin } = await import('moment-locales-webpack-plugin');
+        const { default: MomentTimezoneDataPlugin } = await import('moment-timezone-data-webpack-plugin');
         const thisYear = (new Date()).getFullYear();
         plugins.push(new MomentLocalesPlugin({ localesToKeep: ['en-gb'] }));
         plugins.push(new MomentTimezoneDataPlugin(this._momentTimezoneOptions));
-      } catch {}
+      } catch (e) {
+        console.log(e)
+      }
 
       if (typeof this.styleEntries === 'undefined') {
         this.styleEntries = this.styleEntries = {
@@ -319,10 +319,7 @@ export default class Builder {
             path: this.outputPath,
             publicPath: this.publicPath,
           },
-          node: {
-            // Fix Webpack global CSP violation https://github.com/webpack/webpack/issues/6461
-            global: false,
-          },
+          node: false,
           plugins,
         },
         this.useExternalJquery ? {
@@ -404,9 +401,9 @@ export default class Builder {
 
     return ({ production } = {}) => {
       const config = production ? productionConfig : developmentConfig;
-      return this.browserLevels.map((browserLevel, i) =>
-        merge(commonConfig({ buildOptions: browserLevel, first: i === 0 }), config)
-      );
+      return Promise.all(this.browserLevels.map(async (browserLevel, i) =>
+        merge(await commonConfig({ buildOptions: browserLevel, first: i === 0 }), config)
+      ));
     };
   }
 }

@@ -1,4 +1,4 @@
-import { create } from '../dist';
+import { create } from '../dist/index.js';
 
 export default create()
   .springBootApp()

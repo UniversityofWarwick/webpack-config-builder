@@ -7,7 +7,7 @@ import slash from 'slash';
 /**
  * Webpack plugin to hash all of the assets and write that hash to a single file.
  */
-module.exports = class StaticHashesPlugin {
+export default class StaticHashesPlugin {
   constructor({dest = 'WEB-INF/static-hashes.properties', base = false, hash = 'md5', delimiter = '=', maxLength = 12, salt = 'a'} = {}) {
     this.options = {
       dest,
@@ -66,4 +66,4 @@ module.exports = class StaticHashesPlugin {
       done();
     });
   }
-};
+}
