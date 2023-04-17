@@ -4,10 +4,11 @@ Reusable builder to tame our Webpack boilerplate.
 
 ## Requirements
 
-Some NPM modules need to be directly installed in your project:
+Some NPM modules need to be directly installed in your project, because of the way Node dependencies work:
 
 * `webpack-cli` to provide the `webpack` command
 * `@babel/register` if you are using Webpack's Babel support (i.e. if your config filename contains `babel`)
+* `css-loader`, `less-loader`, `postcss-loader`, `babel-loader`, `eslint-loader`, `babel-eslint`, `@babel/preset-env`
 
 ## Example `webpack.config.babel.js`
 
