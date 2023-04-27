@@ -26,30 +26,47 @@ export const lintJS = () => ({
   },
 });
 
+function getLoaders({ id, include, babelTargets }) {
+  const rules = [];
+  try {
+    require('typescript');
+    rules.push({
+      test: /\.tsx?$/,
+      use: 'ts-loader',
+      exclude: /node_modules/,
+    });
+  } catch(e) {
+    // no typescript - carry on.
+  }
+  rules.push({
+    test: /\.m?js$/,
+    include,
+    use: {
+      loader: 'babel-loader',
+      options: {
+        cacheDirectory : `.babel-loader-caches/${id}`,
+        presets: [
+          ['@babel/preset-env', {
+            targets: babelTargets,
+          }]
+        ]
+      }
+    },
+  });
+  return rules;
+}
+
 export const transpileJS = ({ id, suffix = '', entry, include, babelTargets }) => ({
   entry,
   output: {
     chunkFilename: `[chunkhash]-[name]${suffix}.js`,
     filename: `[name]${suffix}.js`,
   },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
+  },
   module: {
-    rules: [
-      {
-        test: /\.m?js$/,
-        include,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            cacheDirectory : `.babel-loader-caches/${id}`,
-            presets: [
-              ['@babel/preset-env', {
-                targets: babelTargets,
-              }]
-            ]
-          }
-        },
-      },
-    ],
+    rules: getLoaders({ id, include, babelTargets }),
   },
 });
 
