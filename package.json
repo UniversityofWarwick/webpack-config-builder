@@ -1,6 +1,6 @@
 {
   "name": "@universityofwarwick/webpack-config-builder",
-  "version": "5.1.1",
+  "version": "5.1.2",
   "description": "Webpack configuration builder",
   "main": "dist/index.js",
   "module": "dist/index.js",

@@ -108,6 +108,8 @@ export default class Builder {
       startYear: 2020,
       endYear: (new Date()).getFullYear() + 3
     };
+
+    this.useTypescript = true;
   }
 
   /**
@@ -218,6 +220,13 @@ export default class Builder {
   externalJquery(use) {
     this.useExternalJquery = use;
     return this;
+  }
+
+  /**
+   * @param {boolean} use 
+   */
+  typescript(use) {
+    this.useTypescript = use;
   }
 
   /**
@@ -341,6 +350,7 @@ export default class Builder {
           id,
           suffix,
           entry: this.javascriptEntries,
+          useTypescript: this.useTypescript,
           babelTargets,
         }),
         first && this.copyModules.length ? {

@@ -26,17 +26,14 @@ export const lintJS = () => ({
   },
 });
 
-function getLoaders({ id, include, babelTargets }) {
+function getLoaders({ id, include, babelTargets, useTypescript }) {
   const rules = [];
-  try {
-    require('typescript');
+  if (useTypescript ?? true) {
     rules.push({
       test: /\.tsx?$/,
       use: 'ts-loader',
       exclude: /node_modules/,
     });
-  } catch(e) {
-    // no typescript - carry on.
   }
   rules.push({
     test: /\.m?js$/,
@@ -56,7 +53,7 @@ function getLoaders({ id, include, babelTargets }) {
   return rules;
 }
 
-export const transpileJS = ({ id, suffix = '', entry, include, babelTargets }) => ({
+export const transpileJS = ({ id, suffix = '', entry, include, useTypescript, babelTargets }) => ({
   entry,
   output: {
     chunkFilename: `[chunkhash]-[name]${suffix}.js`,
@@ -66,7 +63,7 @@ export const transpileJS = ({ id, suffix = '', entry, include, babelTargets }) =
     extensions: ['.tsx', '.ts', '.js'],
   },
   module: {
-    rules: getLoaders({ id, include, babelTargets }),
+    rules: getLoaders({ id, include, babelTargets, useTypescript }),
   },
 });
 
