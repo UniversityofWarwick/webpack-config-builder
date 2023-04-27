@@ -3,7 +3,7 @@ import { create } from '../dist/index.js';
 export default create()
   .springBootApp()
   .jsEntries({
-    main: './src/main/assets/js/main.js',
+    main: './src/main/assets/js/main.ts',
   })
   .cssEntries({
     style: './src/main/assets/css/main.less',
