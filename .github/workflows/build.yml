@@ -26,11 +26,5 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Build test project
         run: |
-          "
-          ## NPM version info
-
-          ```
-          $(npm version)
-          ```
-          " >> $GITHUB_STEP_SUMMARY
+          npm version
           npm test
