@@ -25,4 +25,12 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - name: Build test project
-        run: npm test
+        run: |
+          "
+          ## NPM version info
+
+          ```
+          $(npm version)
+          ```
+          " >> $GITHUB_STEP_SUMMARY
+          npm test
