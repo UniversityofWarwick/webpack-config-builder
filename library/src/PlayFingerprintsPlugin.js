@@ -23,7 +23,7 @@ export default class PlayFingerprintsPlugin {
    * @param {webpack.Compiler} compiler 
    */
   apply(compiler) {
-    compiler.hooks.emit.tapAsync('PlayFingerprintsPlugin', (compilation, done) => {
+    compiler.hooks.emit.tapPromise('PlayFingerprintsPlugin', async (compilation) => {
       const { assets } = compilation;
       const logger = compilation.getLogger('PlayFingerprintsPlugin');
       const versionedFilenames = {};
@@ -64,8 +64,6 @@ export default class PlayFingerprintsPlugin {
           }
         }
       }
-
-      done();
     });
   }
 }

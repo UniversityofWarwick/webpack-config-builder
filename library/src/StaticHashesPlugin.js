@@ -20,7 +20,7 @@ export default class StaticHashesPlugin {
   }
 
   apply(compiler) {
-    compiler.hooks.emit.tapAsync('StaticHashesPlugin', (compilation, done) => {
+    compiler.hooks.emit.tapPromise('StaticHashesPlugin', async (compilation) => {
       const { assets } = compilation;
       const { dest, hash, delimiter, maxLength, salt } = this.options;
       const hashes = {};
@@ -62,8 +62,6 @@ export default class StaticHashesPlugin {
         source: () => data,
         size: () => data.length,
       };
-
-      done();
     });
   }
 }

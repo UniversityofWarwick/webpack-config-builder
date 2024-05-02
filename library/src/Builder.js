@@ -276,7 +276,6 @@ export default class Builder {
     return this;
   }
 
-
   /**
   * Builds and returns an array of Webpack configurations that can be exported.
   * @returns {Object[]}

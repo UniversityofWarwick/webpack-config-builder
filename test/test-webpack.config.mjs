@@ -1,6 +1,6 @@
-import { create } from '../dist/index.js';
+import * as builder from '@universityofwarwick/webpack-config-builder';
 
-export default create()
+export default builder.create()
   .springBootApp()
   .jsEntries({
     main: './src/main/assets/js/main.ts',
@@ -15,4 +15,5 @@ export default create()
     safari: '14.0',
   }})
   .copyModule('bootstrap', 'dist', 'lib/bootstrap-dist')
+  .copyModule('@fortawesome/fontawesome-free', 'webfonts', 'lib/fontawesome-free/webfonts')
   .build();
