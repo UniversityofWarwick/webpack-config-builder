@@ -122,7 +122,7 @@ export const extractCSS = ({ entry, resolverPaths } = {}) => ({
   },
   plugins: [
     new MiniCssExtractPlugin({
-      //filename: '[name].css',
+      filename: '[name].css',
     }),
   ],
 });
