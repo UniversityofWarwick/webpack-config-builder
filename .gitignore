@@ -1,4 +1,4 @@
-/dist
+dist/
 build/
 node_modules/
 .babel-loader-caches

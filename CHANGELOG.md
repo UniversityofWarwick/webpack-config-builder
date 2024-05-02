@@ -1,5 +1,16 @@
 # Notable changes
 
+* 5.2.0 - Considerable changes to make the Webpack 5 based build actually work.
+
+  If you are upgrading from 1.x you will need to make a few changes:
+
+  * You may need to review your dev dependencies being used for the build, and install anything that is missing.
+  * If your config file is called `webpack.config.babel.js`, consider renaming it `webpack.config.mjs`.
+
+  The library itself has been moved to a `library` directory. This is to highlight issues with missing dependencies in the `test` directory. Previously the test project would erroneously pass due to NPM's behaviour of looking for `node_modules` in parent directories.
+
+  If you are currently referencing the `dist` directory in your import, you will need to change this to `library/dist` to match the new location. I tried outputting `dist` in the original location but then it can't find the `node_modules`.
+
 * 5.1.0 - Converted fully to an ES module. This means in a recent Node versions, it
   can only be imported by another ES module, so your Webpack config file needs to run
   as an ES module. The easiest way to do this is to name it `webpack.config.mjs`. If

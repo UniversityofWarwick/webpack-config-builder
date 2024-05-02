@@ -2,6 +2,7 @@ import CopyWebpackPlugin from 'copy-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import Autoprefixer from 'autoprefixer';
 import CssMinimizerWebpackPlugin from 'css-minimizer-webpack-plugin';
+import ESLintPlugin from 'eslint-webpack-plugin';
 
 export const autoprefix = () => ({
   loader: 'postcss-loader',
@@ -14,16 +15,7 @@ export const autoprefix = () => ({
 });
 
 export const lintJS = () => ({
-
-  module: {
-    rules: [
-      {
-        test: /\.m?js$/,
-        enforce: 'pre',
-        use: 'eslint-loader',
-      },
-    ],
-  },
+  plugins: [new ESLintPlugin()]
 });
 
 function getLoaders({ id, include, babelTargets, useTypescript }) {
@@ -60,7 +52,7 @@ export const transpileJS = ({ id, suffix = '', entry, include, useTypescript, ba
     filename: `[name]${suffix}.js`,
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
+    extensions: ['.tsx', '.ts', '.js', '...']
   },
   module: {
     rules: getLoaders({ id, include, babelTargets, useTypescript }),
@@ -113,8 +105,16 @@ export const extractCSS = ({ entry, resolverPaths } = {}) => ({
             loader: 'less-loader',
             options: {
               sourceMap: true,
+              lessOptions: {
+                // UTL-351
+                // This is the LESS default but defaults to true in less-loader.
+                // False means relative url() paths are left alone, which is what we want
+                // as our ID7 and FA5 setup expect them to already be relative to output
+                // files that we will put into place, and don't resolve at built time to
+                // an asset. 
+                relativeUrls: false,
+              }
             },
-          
           },
         ],
       },
@@ -122,7 +122,7 @@ export const extractCSS = ({ entry, resolverPaths } = {}) => ({
   },
   plugins: [
     new MiniCssExtractPlugin({
-      filename: '[name].css',
+      //filename: '[name].css',
     }),
   ],
 });
