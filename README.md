@@ -4,6 +4,8 @@ Reusable builder to tame our Webpack boilerplate.
 
 ## Requirements
 
+At least NPM 9 is required. If the Node version you are using has an older version you can run `npm i -g npm@^9`.
+
 Some NPM modules need to be directly installed in your project, because of the way Node dependencies work:
 
 ```
