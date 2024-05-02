@@ -3,9 +3,13 @@
 import {createHash} from 'crypto';
 import path from 'path';
 import slash from 'slash';
+import webpack from 'webpack';
+const { Compilation, sources } = webpack;
 
 /**
  * Webpack plugin to hash all of the assets and write that hash to a single file.
+ * 
+ * @type {import('webpack').WebpackPluginInstance}
  */
 export default class StaticHashesPlugin {
   constructor({dest = 'WEB-INF/static-hashes.properties', base = false, hash = 'md5', delimiter = '=', maxLength = 12, salt = 'a'} = {}) {
@@ -19,21 +23,28 @@ export default class StaticHashesPlugin {
     };
   }
 
-  apply(compiler) {
-    compiler.hooks.emit.tapPromise('StaticHashesPlugin', async (compilation) => {
-      const { assets } = compilation;
-      const { dest, hash, delimiter, maxLength, salt } = this.options;
-      const hashes = {};
+  apply(/** @type {import('webpack').Compiler} */compiler) {
+    compiler.hooks.compilation.tap('StaticHashesPlugin', (compilation) => {
+      compilation.hooks.processAssets.tap({
+        name: 'StaticHashesPlugin',
+        stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+      }, () => {
+        const assets  = compilation.getAssets();
+        compilation.logger.info('StaticHashesPlugin', assets.length, 'assets');
+        const { dest, hash, delimiter, maxLength, salt } = this.options;
+        const hashes = {};
 
-      const base = this.options.base || path.dirname(dest);
+        const base = this.options.base || path.dirname(dest);
 
-      for (const filename in assets) {
-        if (Object.prototype.hasOwnProperty.call(assets, filename)) {
+        assets.forEach((asset) => {
+      
+          const filename = asset.name;
+          
           const filePath = path.relative(base, filename);
 
           let fileHash =
             createHash(hash)
-              .update(assets[filename].source(), 'binary')
+              .update(asset.source.source(), 'binary')
               .update(salt)
               .digest('hex');
 
@@ -49,19 +60,21 @@ export default class StaticHashesPlugin {
 
           // Identical to original file but with hash before the extension
           // Note $& refers to the whole match, not $0. Thanks, Perl
-          assets[filename.replace(/\.[^\.]+$/, `.${fileHash}$&`)] = assets[filename];
-        }
-      }
+          const newfilename = filename.replace(/\.[^\.]+$/, `.${fileHash}$&`);
+          compilation.emitAsset(newfilename, asset.source, asset.info);
+        });
 
-      const lines = Object.keys(hashes).sort().map((key) => `${key}${delimiter}${hashes[key]}\n`);
-      const contents = lines.join('');
+        const lines = Object.keys(hashes).sort().map((key) => `${key}${delimiter}${hashes[key]}\n`);
+        const contents = lines.join('');
 
-      const data = Buffer.from(contents);
+        const data = new sources.RawSource(contents);
 
-      assets[dest] = {
-        source: () => data,
-        size: () => data.length,
-      };
+        // properties file.
+        compilation.emitAsset(
+          dest, 
+          data
+        );
+      });
     });
   }
 }
