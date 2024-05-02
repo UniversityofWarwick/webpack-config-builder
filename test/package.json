@@ -3,7 +3,7 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "webpack -c test-webpack.config.mjs --mode production"
   },
   "author": "",
   "license": "ISC",
