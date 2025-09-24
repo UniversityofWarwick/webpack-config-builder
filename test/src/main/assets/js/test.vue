@@ -4,7 +4,7 @@
 
 <script lang="ts">
 class Test {
-  Name:string = "";
+  Name: string = "";
 }
 export default {
   data(): Test {
