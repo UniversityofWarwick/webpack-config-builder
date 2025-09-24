@@ -1,4 +1,5 @@
 import * as builder from '@universityofwarwick/webpack-config-builder';
+import { VueLoaderPlugin } from 'vue-loader';
 
 export default builder.create()
   .springBootApp()
@@ -16,4 +17,5 @@ export default builder.create()
   }})
   .copyModule('bootstrap', 'dist', 'lib/bootstrap-dist')
   .copyModule('@fortawesome/fontawesome-free', 'webfonts', 'lib/fontawesome-free/webfonts')
+  .vue(new VueLoaderPlugin())
   .build();

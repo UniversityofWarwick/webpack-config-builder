@@ -1,10 +1,9 @@
-
 // Node modules
 import path from 'path';
 import fs from 'fs';
 
 // External modules
-import { merge } from 'webpack-merge';
+import {merge} from 'webpack-merge';
 import webpack from 'webpack';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
 import WebpackNotifierPlugin from 'webpack-notifier';
@@ -110,6 +109,18 @@ export default class Builder {
     };
 
     this.useTypescript = true;
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.useVue = false;
+
+    /**
+     * @type {Plugin|null|undefined}
+     * @private
+     */
+    this.vueLoaderPlugin = null;
   }
 
   /**
@@ -223,7 +234,7 @@ export default class Builder {
   }
 
   /**
-   * @param {boolean} use 
+   * @param {boolean} use
    */
   typescript(use) {
     this.useTypescript = use;
@@ -277,6 +288,17 @@ export default class Builder {
   }
 
   /**
+   * Enables the use of Vue.js in your app.
+   *
+   * @param {Plugin} vueLoaderPlugin - The VueLoaderPlugin
+   */
+  vue(vueLoaderPlugin) {
+    this.useVue = true;
+    this.vueLoaderPlugin = vueLoaderPlugin;
+    return this;
+  }
+
+  /**
   * Builds and returns an array of Webpack configurations that can be exported.
   * @returns {Object[]}
   */
@@ -315,6 +337,15 @@ export default class Builder {
         console.log(e)
       }
 
+      if (this.useVue) {
+        plugins.push(this.vueLoaderPlugin);
+        plugins.push(new DefinePlugin({
+          __VUE_OPTIONS_API__: 'true',
+          __VUE_PROD_DEVTOOLS__: 'false',
+          __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
+        }));
+      }
+
       if (typeof this.styleEntries === 'undefined') {
         this.styleEntries = this.styleEntries = {
           style: `${this.assetsRoot}/css/main.less`,
@@ -323,6 +354,10 @@ export default class Builder {
 
       return merge([
         {
+          performance: {
+            // Can't do anything about Font Awesome's webfonts, so ignore them
+            assetFilter: (assetFilename) => !/(\.map$)|(\.svg$)/.test(assetFilename),
+          },
           output: {
             path: this.outputPath,
             publicPath: this.publicPath,
@@ -351,6 +386,7 @@ export default class Builder {
           entry: this.javascriptEntries,
           useTypescript: this.useTypescript,
           babelTargets,
+          useVue: this.useVue,
         }),
         first && this.copyModules.length ? {
           plugins: [
