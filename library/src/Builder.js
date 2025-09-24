@@ -347,7 +347,7 @@ export default class Builder {
       }
 
       if (typeof this.styleEntries === 'undefined') {
-        this.styleEntries = this.styleEntries = {
+        this.styleEntries = {
           style: `${this.assetsRoot}/css/main.less`,
         };
       }
