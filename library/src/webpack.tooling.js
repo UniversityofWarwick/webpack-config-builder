@@ -18,12 +18,15 @@ export const lintJS = () => ({
   plugins: [new ESLintPlugin()]
 });
 
-function getLoaders({ id, include, babelTargets, useTypescript }) {
+function getLoaders({ id, include, babelTargets, useTypescript, useVue }) {
   const rules = [];
   if (useTypescript ?? true) {
     rules.push({
       test: /\.tsx?$/,
-      use: 'ts-loader',
+      use: {
+        loader: 'ts-loader',
+        options: (useVue ? { appendTsSuffixTo: [/\.vue$/] } : {}),
+      },
       exclude: /node_modules/,
     });
   }
@@ -42,20 +45,26 @@ function getLoaders({ id, include, babelTargets, useTypescript }) {
       }
     },
   });
+  if (useVue) {
+    rules.push({
+      test: /\.vue$/,
+      loader: 'vue-loader',
+    });
+  }
   return rules;
 }
 
-export const transpileJS = ({ id, suffix = '', entry, include, useTypescript, babelTargets }) => ({
+export const transpileJS = ({ id, suffix = '', entry, include, useTypescript, babelTargets, useVue }) => ({
   entry,
   output: {
     chunkFilename: `[chunkhash]-[name]${suffix}.js`,
     filename: `[name]${suffix}.js`,
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', '...']
+    extensions: ['.tsx', '.ts', '.js', '...'].concat(useVue ? ['.vue'] : []),
   },
   module: {
-    rules: getLoaders({ id, include, babelTargets, useTypescript }),
+    rules: getLoaders({ id, include, babelTargets, useTypescript, useVue }),
   },
 });
 
@@ -111,7 +120,7 @@ export const extractCSS = ({ entry, resolverPaths } = {}) => ({
                 // False means relative url() paths are left alone, which is what we want
                 // as our ID7 and FA5 setup expect them to already be relative to output
                 // files that we will put into place, and don't resolve at built time to
-                // an asset. 
+                // an asset.
                 relativeUrls: false,
               }
             },

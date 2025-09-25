@@ -12,6 +12,19 @@ Some NPM modules need to be directly installed in your project, because of the w
 npm install -D webpack webpack-cli @babel/core @babel/register @babel/preset-env css-loader less less-loader postcss-loader babel-loader babel-eslint
 ```
 
+## Vue.js support
+
+If you want to use Vue.js, you need to include `vue-loader` with the above dependencies. Also, you need to provide the builder with the `VueLoaderPlugin` directly (so it can be kept optional for those not using Vue.js):
+
+```js
+import { VueLoaderPlugin } from 'vue-loader';
+...
+    .vue(new VueLoaderPlugin())
+    .build();
+```
+
+Currently only tested with Vue.js v3.
+
 ## Known issues
 
 The current version of the eslint plugin is only compatible with eslint 8. [Issue][eslint-9-issue]
