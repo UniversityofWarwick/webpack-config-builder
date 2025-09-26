@@ -238,6 +238,7 @@ export default class Builder {
    */
   typescript(use) {
     this.useTypescript = use;
+    return this;
   }
 
   /**
