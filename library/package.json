@@ -45,6 +45,7 @@
     "moment-timezone-data-webpack-plugin": "^1.5.1",
     "postcss-loader": "^8.2.0",
     "postcss-safe-parser": "^7.0.1",
+    "slash": "5.1.0",
     "terser-webpack-plugin": "^5.3.14",
     "webpack": "5.101.3",
     "webpack-bundle-analyzer": "^4.10.2",
